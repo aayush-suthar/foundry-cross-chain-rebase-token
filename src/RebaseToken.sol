@@ -14,7 +14,7 @@ import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 contract RebaseToken is ERC20 {
     error RebaseToken__InterestRateCanOnlyDecreas(uint256 oldInterestRate, uint256 newInterestRate);
 
-    uint256 private s_interestRate = 5e10; //0.00000005
+    uint256 private s_interestRate = 5e10; //0.00000005 // rate per second
     mapping (address => uint256) private s_userInterestRate;
     mapping (address => uint256) private s_userLastUpdatedTimestamp;
 
@@ -47,7 +47,6 @@ contract RebaseToken is ERC20 {
         // get the current principal balance of the user + interest oken during last update (the number of tokens that have actually been minted to the user)
         // multiply the principle balance by the interest that has accumulated in the time since the balance was last updated
         return super.balanceOf(_user) * _calculateUserAccumulatedInterestSinceLastUpdate(_user);
-
     }
 
     function _mintAccuredInterest(address _user) internal {
