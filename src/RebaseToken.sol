@@ -16,15 +16,15 @@ import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 contract RebaseToken is ERC20, Ownable, AccessControl {
     error RebaseToken__InterestRateCanOnlyDecreas(uint256 oldInterestRate, uint256 newInterestRate);
 
-    uint256 private s_interestRate = 5e10; //0.00000005 // rate per second --> 0.00000005 new rebase token per second
+    uint256 private constant PRECISION_FACTOR = 1e18;
+    uint256 private s_interestRate = (5 * PRECISION_FACTOR) / 1e8; //0.00000005 // rate per second --> 0.00000005 new rebase token per second
     bytes32 private constant MINT_AND_BURN_ROLE = keccak256("MINT_AND_BURN_ROLE");
     mapping (address => uint256) private s_userInterestRate;
     mapping (address => uint256) private s_userLastUpdatedTimestamp;
-    uint256 private constant PRECISION_FACTOR = 1e18;
 
     event InterestRateSet(uint256 newInterestRate);
 
-    contructor() ERC20("Rebase Token" , "RBT") Ownable(msg.sender){}
+    constructor() Ownable(msg.sender) ERC20("Rebase Token" , "RBT") {}
 
     // known issue: owner can grant permission to himself --> a bit centralized
     function grantMintAndBurnRole(address _account) external onlyOwner{
@@ -77,10 +77,6 @@ contract RebaseToken is ERC20, Ownable, AccessControl {
      */
     function burn(address _from, uint256 _amount) external onlyRole(MINT_AND_BURN_ROLE){
         _mintAccruedInterest(_from);
-        // burn all the _from token
-        if(_amount == type(uint256).max){
-            _amount = balanceOf(_from);
-        }
         _burn(_from, _amount);
     }
 
@@ -139,7 +135,7 @@ contract RebaseToken is ERC20, Ownable, AccessControl {
     /**
      * @notice Calculate the interest that has accumulated since the last update
      * @param _user The user to calculate the interest accumulated for
-     * @return The interest that has accumulated since the last update
+     * @return linearInterest The interest that has accumulated since the last update
      * 
      */
     function _calculateUserAccumulatedInterestSinceLastUpdate(address _user) internal view returns (uint256 linearInterest) {
@@ -166,7 +162,7 @@ contract RebaseToken is ERC20, Ownable, AccessControl {
         // calculate the number of tokens that need to be minted to the user --> (2) - (1)
         uint256 balanceIncrease = currentBalance - previousPrincipalBalance; 
         // set the users last updated timestamp
-        s_userLastUpdatedTimestamp[_user] = block.timestamp
+        s_userLastUpdatedTimestamp[_user] = block.timestamp;
         // call _mint to mint the tokens to the user
         _mint(_user, balanceIncrease);
     }
